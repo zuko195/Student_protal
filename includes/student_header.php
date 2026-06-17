@@ -35,8 +35,8 @@ $currentFile = basename($_SERVER['PHP_SELF']);
                 </a>
             </li>
             <li class="nav-item">
-                <a class="sms-top-link <?= $currentFile === 'dashboard.php' ? 'active' : '' ?>"
-                   href="<?= getBaseUrl() ?>student/dashboard.php#notes">
+                <a class="sms-top-link <?= strpos($_SERVER['SCRIPT_NAME'], '/student/notes/') !== false ? 'active' : '' ?>"
+                   href="<?= getBaseUrl() ?>student/notes/list.php">
                     <i class="bi bi-bell me-1"></i>Notes
                 </a>
             </li>

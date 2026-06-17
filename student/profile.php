@@ -25,19 +25,45 @@ $old     = $student;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name = trim($_POST['full_name'] ?? '');
-    $phone     = trim($_POST['phone']     ?? '');
-    $address   = trim($_POST['address']   ?? '');
+    $email     = trim($_POST['email'] ?? '');
+    $phone     = trim($_POST['phone'] ?? '');
+    $gender    = trim($_POST['gender'] ?? '');
+    $dob       = trim($_POST['dob'] ?? '');
+    $course    = trim($_POST['course'] ?? '');
+    $address   = trim($_POST['address'] ?? '');
 
-    $old = array_merge($student, compact('full_name', 'phone', 'address'));
+    $old = array_merge($student, compact('full_name','email','phone','gender','dob','course','address'));
 
     // Validation
     if ($full_name === '') {
         $errors['full_name'] = 'Full name is required.';
     }
+    if ($email === '') {
+        $errors['email'] = 'Email is required.';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors['email'] = 'Invalid email address.';
+    } else {
+        // Ensure email is unique among other students
+        $check = $conn->prepare('SELECT id FROM students WHERE email = ? AND id <> ? LIMIT 1');
+        $check->bind_param('si', $email, $userId);
+        $check->execute();
+        $exists = $check->get_result()->fetch_assoc();
+        $check->close();
+        if ($exists) {
+            $errors['email'] = 'This email is already taken.';
+        }
+    }
     if ($phone === '') {
         $errors['phone'] = 'Phone number is required.';
     } elseif (!preg_match('/^\+?[0-9]{7,15}$/', $phone)) {
         $errors['phone'] = 'Invalid phone number format.';
+    }
+    if ($gender !== '' && !in_array($gender, ['Male','Female','Other'], true)) {
+        $errors['gender'] = 'Invalid gender selection.';
+    }
+    if ($dob !== '') {
+        $d = DateTime::createFromFormat('Y-m-d', $dob);
+        if (!$d) $errors['dob'] = 'Invalid date of birth.';
     }
     if ($address === '') {
         $errors['address'] = 'Address is required.';
@@ -58,8 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $finalImage = $newFilename ?? $student['profile_image'];
 
-        $stmt = $conn->prepare('UPDATE students SET full_name=?, phone=?, address=?, profile_image=? WHERE id=?');
-        $stmt->bind_param('ssssi', $full_name, $phone, $address, $finalImage, $userId);
+        $stmt = $conn->prepare('UPDATE students SET full_name=?, email=?, phone=?, gender=?, dob=?, address=?, course=?, profile_image=? WHERE id=?');
+        $stmt->bind_param('ssssssssi', $full_name, $email, $phone, $gender, $dob, $address, $course, $finalImage, $userId);
 
         if ($stmt->execute()) {
             if ($newFilename && $student['profile_image'] !== $newFilename) {
@@ -127,11 +153,10 @@ require_once __DIR__ . '/../includes/student_header.php';
             <div class="text-start">
                 <p class="small text-muted mb-1"><strong>Email:</strong> <?= e($student['email']) ?></p>
                 <p class="small text-muted mb-1"><strong>Course:</strong> <?= e($student['course']) ?></p>
+                <p class="small text-muted mb-1"><strong>Gender:</strong> <?= e($student['gender']) ?></p>
                 <p class="small text-muted mb-0"><strong>Joined:</strong> <?= e(date('d M Y', strtotime($student['created_at']))) ?></p>
             </div>
-            <div class="mt-2 small text-muted" style="font-size:0.75rem;">
-                <i class="bi bi-lock me-1"></i>Email, course and status can only be changed by admin.
-            </div>
+            
         </div>
     </div>
 
@@ -151,11 +176,55 @@ require_once __DIR__ . '/../includes/student_header.php';
                 </div>
 
                 <div class="mb-3">
+                    <label class="sms-form-label" for="email">Email Address <span class="text-danger">*</span></label>
+                    <input type="email" class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>"
+                           id="email" name="email" value="<?= e($old['email']) ?>">
+                    <?php if (isset($errors['email'])): ?>
+                        <div class="invalid-feedback"><?= e($errors['email']) ?></div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="mb-3">
                     <label class="sms-form-label" for="phone">Phone <span class="text-danger">*</span></label>
                     <input type="text" class="form-control <?= isset($errors['phone']) ? 'is-invalid' : '' ?>"
                            id="phone" name="phone" value="<?= e($old['phone']) ?>">
                     <?php if (isset($errors['phone'])): ?>
                         <div class="invalid-feedback"><?= e($errors['phone']) ?></div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="sms-form-label" for="gender">Gender</label>
+                            <select name="gender" id="gender" class="form-select <?= isset($errors['gender']) ? 'is-invalid' : '' ?>">
+                                <option value=""<?= $old['gender']==='' ? ' selected' : '' ?>>Prefer not to say</option>
+                                <option value="Male"<?= $old['gender']==='Male' ? ' selected' : '' ?>>Male</option>
+                                <option value="Female"<?= $old['gender']==='Female' ? ' selected' : '' ?>>Female</option>
+                                <option value="Other"<?= $old['gender']==='Other' ? ' selected' : '' ?>>Other</option>
+                            </select>
+                            <?php if (isset($errors['gender'])): ?>
+                                <div class="invalid-feedback"><?= e($errors['gender']) ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="sms-form-label" for="dob">Date of Birth</label>
+                            <input type="date" name="dob" id="dob" class="form-control <?= isset($errors['dob']) ? 'is-invalid' : '' ?>" value="<?= e($old['dob']) ?>">
+                            <?php if (isset($errors['dob'])): ?>
+                                <div class="invalid-feedback"><?= e($errors['dob']) ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="sms-form-label" for="course">Course</label>
+                    <input type="text" class="form-control <?= isset($errors['course']) ? 'is-invalid' : '' ?>"
+                           id="course" name="course" value="<?= e($old['course']) ?>">
+                    <?php if (isset($errors['course'])): ?>
+                        <div class="invalid-feedback"><?= e($errors['course']) ?></div>
                     <?php endif; ?>
                 </div>
 

@@ -46,7 +46,6 @@ try {
         $types   .= 's';
     }
 
-    $where[] = '(valid_from IS NULL OR valid_from <= NOW())';
     $where[] = '(expires_at IS NULL OR expires_at >= NOW())';
 
     $sql = "SELECT * FROM notes WHERE " . implode(' AND ', $where) . " ORDER BY created_at DESC LIMIT 20";

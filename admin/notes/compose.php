@@ -9,7 +9,7 @@ $pageTitle = 'Compose Note';
 $students = $conn->query('SELECT id, full_name, course FROM students ORDER BY full_name ASC');
 
 $errors  = [];
-$form    = ['type'=>'broadcast','student_id'=>'','title'=>'','body'=>'','priority'=>'normal'];
+$form    = ['type'=>'broadcast','student_id'=>'','title'=>'','body'=>'','priority'=>'normal','expires_at'=>''];
 
 // ── Handle POST ───────────────────────────────────────────────
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -18,25 +18,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $form['title']      = trim($_POST['title'] ?? '');
     $form['body']       = trim($_POST['body'] ?? '');
     $form['priority']   = in_array($_POST['priority'] ?? '', ['normal','important','urgent']) ? $_POST['priority'] : 'normal';
+    $form['expires_at'] = trim($_POST['expires_at'] ?? '');
 
     if ($form['title'] === '') $errors[] = 'Title is required.';
     if ($form['body']  === '') $errors[] = 'Message body is required.';
     if ($form['type'] === 'personal' && $form['student_id'] < 1)
         $errors[] = 'Please select a recipient student.';
 
+    $expiresAt = null;
+    if ($form['expires_at'] !== '') {
+        $dt = DateTime::createFromFormat('Y-m-d', $form['expires_at']);
+        if (!$dt) {
+            $errors[] = 'Expiry date is invalid.';
+        } else {
+            $expiresAt = $dt->format('Y-m-d 23:59:59');
+        }
+    }
+
     if (!$errors) {
         $sid = $form['type'] === 'personal' ? $form['student_id'] : null;
         $stmt = $conn->prepare(
-            'INSERT INTO notes (admin_id, type, student_id, title, body, priority) VALUES (?, ?, ?, ?, ?, ?)'
+            'INSERT INTO notes (admin_id, type, student_id, title, body, priority, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
         $adminId = (int)$_SESSION['user_id'];
-        $stmt->bind_param('isssss',
+        $stmt->bind_param('isissss',
             $adminId,
             $form['type'],
             $sid,
             $form['title'],
             $form['body'],
-            $form['priority']
+            $form['priority'],
+            $expiresAt
         );
         $stmt->execute();
         $stmt->close();
@@ -156,6 +168,22 @@ require_once __DIR__ . '/../../includes/admin_header.php';
                     </label>
                 <?php endforeach; ?>
             </div>
+        </div>
+
+        <div class="mb-4">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="form-label fw-semibold mb-0">Expiry</label>
+                <small class="text-muted">Optional: set the date after which this note is no longer active.</small>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="expires_at" class="form-label">Expire Date</label>
+                    <input type="date" name="expires_at" id="expires_at"
+                           class="form-control form-control-sm"
+                           value="<?= e($form['expires_at']) ?>">
+                </div>
+            </div>
+            <div class="form-text">Leave blank to keep this note active indefinitely.</div>
         </div>
 
         <div class="d-flex gap-2">

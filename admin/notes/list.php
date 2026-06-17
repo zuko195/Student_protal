@@ -23,8 +23,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delet
 }
 
 // ── Filters ──────────────────────────────────────────────────
-$filterType = $_GET['type'] ?? '';
-$filterSearch = trim($_GET['q'] ?? '');
+$filterType     = $_GET['type'] ?? '';
+$filterSearch   = trim($_GET['q'] ?? '');
+$filterPriority = $_GET['priority'] ?? '';
+$filterFromDate = $_GET['from_date'] ?? '';
+$filterToDate   = $_GET['to_date'] ?? '';
 
 $where  = [];
 $params = [];
@@ -33,6 +36,21 @@ $types  = '';
 if ($filterType === 'broadcast' || $filterType === 'personal') {
     $where[]  = 'n.type = ?';
     $params[] = $filterType;
+    $types   .= 's';
+}
+if (in_array($filterPriority, ['normal', 'important', 'urgent'], true)) {
+    $where[]  = 'n.priority = ?';
+    $params[] = $filterPriority;
+    $types   .= 's';
+}
+if ($filterFromDate !== '') {
+    $where[]  = 'DATE(n.created_at) >= ?';
+    $params[] = $filterFromDate;
+    $types   .= 's';
+}
+if ($filterToDate !== '') {
+    $where[]  = 'DATE(n.created_at) <= ?';
+    $params[] = $filterToDate;
     $types   .= 's';
 }
 if ($filterSearch !== '') {
@@ -119,16 +137,27 @@ require_once __DIR__ . '/../../includes/admin_header.php';
 </div>
 
 <!-- Search bar -->
-<form method="get" class="mb-3 d-flex gap-2" style="max-width:460px">
+<form method="get" class="mb-3 d-flex flex-wrap gap-2 align-items-end" style="max-width:820px">
     <input type="hidden" name="type" value="<?= e($filterType) ?>">
+
+    <select name="priority" class="form-select form-select-sm" style="width:145px">
+        <option value=""<?= $filterPriority === '' ? ' selected' : '' ?>>All priorities</option>
+        <option value="normal"<?= $filterPriority === 'normal' ? ' selected' : '' ?>>Normal</option>
+        <option value="important"<?= $filterPriority === 'important' ? ' selected' : '' ?>>Important</option>
+        <option value="urgent"<?= $filterPriority === 'urgent' ? ' selected' : '' ?>>Urgent</option>
+    </select>
+
+    <input type="date" name="from_date" value="<?= e($filterFromDate) ?>" class="form-control form-control-sm" style="width:160px" placeholder="From date">
+    <input type="date" name="to_date" value="<?= e($filterToDate) ?>" class="form-control form-control-sm" style="width:160px" placeholder="To date">
+
     <input type="text" name="q" value="<?= e($filterSearch) ?>"
            class="form-control form-control-sm" placeholder="Search title, body, student name…">
     <button class="btn btn-sm btn-outline-secondary">
-        <i class="bi bi-search"></i>
+        <i class="bi bi-filter me-1"></i>Filter
     </button>
-    <?php if ($filterSearch): ?>
-        <a href="?type=<?= e($filterType) ?>" class="btn btn-sm btn-outline-danger"><i class="bi bi-x"></i></a>
-    <?php endif; ?>
+    <a href="?" class="btn btn-sm btn-outline-danger" title="Clear all filters">
+        <i class="bi bi-x"></i>
+    </a>
 </form>
 
 <!-- Notes table -->
@@ -141,7 +170,7 @@ require_once __DIR__ . '/../../includes/admin_header.php';
                     <th>Title</th>
                     <th>Recipient</th>
                     <th style="width:100px">Priority</th>
-                    <th style="width:130px">Sent</th>
+                    <th style="width:130px">Date</th>
                     <th style="width:90px">Actions</th>
                 </tr>
             </thead>
@@ -185,7 +214,7 @@ require_once __DIR__ . '/../../includes/admin_header.php';
                         ?>
                         <span class="badge <?= $pcls ?>" style="font-size:.73rem"><?= $plabel ?></span>
                     </td>
-                    <td style="font-size:.82rem;color:#666"><?= date('d M Y H:i', strtotime($n['created_at'])) ?></td>
+                    <td style="font-size:.82rem;color:#666"><?= date('d M Y', strtotime($n['created_at'])) ?></td>
                     <td>
                         <a href="view.php?id=<?= $n['id'] ?>" class="sms-btn-action sms-btn-view" title="View">
                             <i class="bi bi-eye"></i>

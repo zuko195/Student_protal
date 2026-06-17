@@ -56,7 +56,7 @@ $pMap = ['normal'    => ['bg-success-subtle text-success-emphasis','Normal'],
         <?php endif; ?>
         <span class="badge <?= $pcls ?>" style="font-size:.76rem"><?= $plabel ?></span>
         <span class="text-muted small ms-auto">
-            <i class="bi bi-clock me-1"></i><?= date('d M Y, H:i', strtotime($note['created_at'])) ?>
+            <i class="bi bi-clock me-1"></i><?= date('d M Y', strtotime($note['created_at'])) ?>
         </span>
     </div>
 
@@ -78,6 +78,16 @@ $pMap = ['normal'    => ['bg-success-subtle text-success-emphasis','Normal'],
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- Scheduling -->
+    <?php if (!empty($note['expires_at'])): ?>
+        <div class="sms-detail-row mb-3">
+            <div class="sms-detail-label">Expires</div>
+            <div class="sms-detail-val" style="font-size:.92rem">
+                <?= e(date('d M Y', strtotime($note['expires_at']))) ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <!-- Body -->
     <div class="p-3 rounded" style="background:#faf7f4;border:1px solid #e8e0d8;font-size:.92rem;line-height:1.7;white-space:pre-wrap"><?= e($note['body']) ?></div>

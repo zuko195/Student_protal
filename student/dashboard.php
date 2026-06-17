@@ -20,17 +20,38 @@ if (!$student) {
 $notes = [];
 $notes_error = '';
 $unreadCount = 0;
+$filterPriority = $_GET['priority'] ?? '';
+$filterFromDate = $_GET['from_date'] ?? '';
+$filterToDate = $_GET['to_date'] ?? '';
 try {
     $sid = (int)$_SESSION['user_id'];
 
-    $stmtN = $conn->prepare(
-        "SELECT * FROM notes
-         WHERE type = 'broadcast'
-            OR (type = 'personal' AND student_id = ?)
-         ORDER BY created_at DESC
-         LIMIT 20"
-    );
-    $stmtN->bind_param('i', $sid);
+    $where  = ["(type = 'broadcast' OR (type = 'personal' AND student_id = ?))"];
+    $params = [$sid];
+    $types  = 'i';
+
+    if (in_array($filterPriority, ['normal', 'important', 'urgent'], true)) {
+        $where[]  = 'priority = ?';
+        $params[] = $filterPriority;
+        $types   .= 's';
+    }
+    if ($filterFromDate !== '') {
+        $where[]  = 'DATE(created_at) >= ?';
+        $params[] = $filterFromDate;
+        $types   .= 's';
+    }
+    if ($filterToDate !== '') {
+        $where[]  = 'DATE(created_at) <= ?';
+        $params[] = $filterToDate;
+        $types   .= 's';
+    }
+
+    $where[] = '(valid_from IS NULL OR valid_from <= NOW())';
+    $where[] = '(expires_at IS NULL OR expires_at >= NOW())';
+
+    $sql = "SELECT * FROM notes WHERE " . implode(' AND ', $where) . " ORDER BY created_at DESC LIMIT 20";
+    $stmtN = $conn->prepare($sql);
+    $stmtN->bind_param($types, ...$params);
     $stmtN->execute();
     $resN = $stmtN->get_result();
     while ($row = $resN->fetch_assoc()) {
@@ -163,6 +184,25 @@ require_once __DIR__ . '/../includes/student_header.php';
                     <?php endif; ?>
                 </div>
             </div>
+
+            <form method="get" class="mb-3 d-flex flex-wrap gap-2 align-items-end" style="max-width:760px">
+                <select name="priority" class="form-select form-select-sm" style="width:145px">
+                    <option value=""<?= $filterPriority === '' ? ' selected' : '' ?>>All priorities</option>
+                    <option value="normal"<?= $filterPriority === 'normal' ? ' selected' : '' ?>>Normal</option>
+                    <option value="important"<?= $filterPriority === 'important' ? ' selected' : '' ?>>Important</option>
+                    <option value="urgent"<?= $filterPriority === 'urgent' ? ' selected' : '' ?>>Urgent</option>
+                </select>
+
+                <input type="date" name="from_date" value="<?= e($filterFromDate) ?>" class="form-control form-control-sm" style="width:160px" placeholder="From date">
+                <input type="date" name="to_date" value="<?= e($filterToDate) ?>" class="form-control form-control-sm" style="width:160px" placeholder="To date">
+
+                <button class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-filter"></i> Filter
+                </button>
+                <a href="<?= getBaseUrl() ?>student/dashboard.php" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-x"></i> Clear
+                </a>
+            </form>
 
             <?php if (!empty($notes_error)): ?>
                 <div class="alert alert-warning">

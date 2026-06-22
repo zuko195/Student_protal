@@ -132,9 +132,16 @@ function redirect(string $url): void {
 // ── Allowed email domains ────────────────────────────────────
 define('ALLOWED_EMAIL_DOMAINS', ['gmail.com', 'rayblaze.com']);
 
+function getEmailDomain(string $email): string {
+    $at = strrpos($email, '@');
+    if ($at === false) {
+        return '';
+    }
+    return strtolower(substr($email, $at + 1));
+}
+
 function isAllowedEmailDomain(string $email): bool {
-    $domain = strtolower(substr(strrchr($email, '@'), 1));
-    return in_array($domain, ALLOWED_EMAIL_DOMAINS);
+    return in_array(getEmailDomain($email), ALLOWED_EMAIL_DOMAINS, true);
 }
 
 // ── Send password reset email ────────────────────────────────

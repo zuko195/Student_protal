@@ -63,11 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password']   ?? '';
         $oldData['email'] = $email;
 
-        $allowedDomains = ['gmail.com', 'rayblaze.com'];
-        $emailDomain    = strtolower(substr(strrchr($email, '@'), 1));
         if ($email === '')               $errors['email']    = 'Email is required.';
         elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Invalid email format.';
-        elseif (!in_array($emailDomain, $allowedDomains)) $errors['email'] = 'Only @gmail.com and @rayblaze.com email addresses are allowed.';
+        elseif (!isAllowedEmailDomain($email)) $errors['email'] = 'Only @gmail.com and @rayblaze.com email addresses are allowed.';
         if ($password === '')            $errors['password'] = 'Password is required.';
 
         if (empty($errors)) {
@@ -270,6 +268,11 @@ if (sForm) {
             var fb = email.parentElement.querySelector('.invalid-feedback');
             if (!fb) { fb = document.createElement('div'); fb.className = 'invalid-feedback'; email.parentElement.appendChild(fb); }
             fb.textContent = 'Invalid email format.'; valid = false;
+        } else if (email && !['gmail.com','rayblaze.com'].includes(email.value.trim().split('@')[1]?.toLowerCase())) {
+            email.classList.add('is-invalid');
+            var fb = email.parentElement.querySelector('.invalid-feedback');
+            if (!fb) { fb = document.createElement('div'); fb.className = 'invalid-feedback'; email.parentElement.appendChild(fb); }
+            fb.textContent = 'Only @gmail.com and @rayblaze.com email addresses are allowed.'; valid = false;
         }
         if (pass && pass.value.trim() === '') {
             pass.classList.add('is-invalid');

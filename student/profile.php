@@ -42,6 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['email'] = 'Email is required.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $errors['email'] = 'Invalid email address.';
+    } elseif (!isAllowedEmailDomain($email)) {
+        $errors['email'] = 'Only @gmail.com and @rayblaze.com email addresses are allowed.';
     } else {
         // Ensure email is unique among other students
         $check = $conn->prepare('SELECT id FROM students WHERE email = ? AND id <> ? LIMIT 1');

@@ -24,8 +24,19 @@ function clearErrors(formId) {
     form.querySelectorAll('.invalid-feedback').forEach(el => el.textContent = '');
 }
 
+const allowedEmailDomains = ['gmail.com', 'rayblaze.com'];
+
 function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function getEmailDomain(email) {
+    const parts = email.trim().split('@');
+    return parts.length === 2 ? parts[1].toLowerCase() : '';
+}
+
+function isAllowedEmailDomain(email) {
+    return allowedEmailDomains.includes(getEmailDomain(email));
 }
 
 function isValidPhone(phone) {
@@ -88,6 +99,9 @@ if (studentForm) {
                 valid = false;
             } else if (!isValidEmail(email.value)) {
                 showError('email', 'Invalid email format.');
+                valid = false;
+            } else if (!isAllowedEmailDomain(email.value)) {
+                showError('email', 'Only @gmail.com and @rayblaze.com email addresses are allowed.');
                 valid = false;
             }
         }

@@ -42,7 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($full_name === '') $errors['full_name'] = 'Full name is required.';
     if ($email === '') $errors['email'] = 'Email is required.';
     elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors['email'] = 'Invalid email format.';
+    elseif (!isAllowedEmailDomain($email)) $errors['email'] = 'Only @gmail.com and @rayblaze.com email addresses are allowed.';
     if ($password === '') $errors['password'] = 'Password is required.';
+    elseif (strlen($password) < 8) $errors['password'] = 'Password must be at least 8 characters.';
     if ($confirm === '') $errors['confirm_password'] = 'Please confirm your password.';
     if ($password !== '' && $confirm !== '' && $password !== $confirm) $errors['confirm_password'] = 'Passwords do not match.';
 
